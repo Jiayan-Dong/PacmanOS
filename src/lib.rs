@@ -10,7 +10,7 @@
 #![allow(non_snake_case)]
 #![feature(alloc_error_handler)]
 #![feature(naked_functions)]
-#![feature(str_split_as_str)]
+// #![feature(str_split_as_str)]
 #![allow(unused_imports)]
 #![feature(asm_const)]
 #![allow(named_asm_labels)]
@@ -68,12 +68,12 @@ pub unsafe extern "C" fn kmain (iboot_info: *mut iBootArgs) -> ! {
 // Main but for Qemu
 #[no_mangle]
 pub unsafe extern "C" fn kmain_virt() -> ! {
-	// let vidmem = framebuffer::get_framebuffer();
-	// for y in 0 .. 1080 {
-	//     for x in 0 .. 1920 {
-	//         vidmem[y as usize][x as usize] = color10bto8b(pacman_logo[y as usize][x as usize]);
-	//     }
-	// }
+	let vidmem = framebuffer::get_framebuffer();
+	for y in 0 .. 1080 {
+	    for x in 0 .. 1920 {
+	        vidmem[y as usize][x as usize] = color10bto8b(pacman_logo[y as usize][x as usize]);
+	    }
+	}
 
 	// The instant we write to any static data living in the flash, Qemu slows down a TON
 	// This is a consequence of the current hack to make flash writeable. Really need to
@@ -171,7 +171,7 @@ pub unsafe extern "C" fn common_main_upperhalf() -> ! {
 }
 
 #[panic_handler]
-pub extern "C" fn rust_panic (_info: &PanicInfo<'_>) -> ! {
+pub fn rust_panic (_info: &PanicInfo<'_>) -> ! {
 	let mut osconsole = serial::Serial::new();
 	osconsole.write_string("\nRUST PANIC RUST PANIC RUST PANIC!!!!!!!!!!!\n");
 	loop {}

@@ -6,7 +6,8 @@ LD := $(TOOLCHAIN_PREFIX)ld
 OBJCOPY := $(TOOLCHAIN_PREFIX)objcopy
 
 CFLAGS := -ffreestanding -fpic -fno-pie
-LDFLAGS := -T linker_qemu.ld -EL -maarch64elf -z notext -z nocopyreloc --gc-sections -static -pie --gc-sections
+# LDFLAGS := -T linker_qemu.ld -EL -maarch64elf -z notext -z nocopyreloc --gc-sections -static -pie --gc-sections
+LDFLAGS := -EL -maarch64elf -z notext -z nocopyreloc --gc-sections -static -pie --gc-sections
 
 RUST_OBJECTS := \
 	target/applem1-pacmanos-none/debug/libpacman_hypervisor.a
@@ -21,7 +22,7 @@ TARGET := PacmanOS
 DEPDIR := build/.deps
 
 .PHONY: all clean
-all : build/$(TARGET).macho
+all : build/$(TARGET).macho build/$(TARGET).bin 
 
 clean:
 	rm -rf build/*
@@ -53,11 +54,20 @@ build/%.o: %.c
 build/$(TARGET).elf: $(BUILD_OBJS) linker.ld
 	@echo "  LD    $@"
 	@mkdir -p "$(dir $@)"
-	@$(LD) $(LDFLAGS) -o $@ $(BUILD_OBJS)
+	@$(LD) -T linker.ld $(LDFLAGS) -o $@ $(BUILD_OBJS)
+
+build/$(TARGET)-raw.elf: $(BUILD_OBJS) linker-raw.ld
+	@echo "  LDRAW    $@"
+	@mkdir -p "$(dir $@)"
+	@$(LD) -T linker-raw.ld $(LDFLAGS) -o $@ $(BUILD_OBJS)
 
 # Idea here is from the m1n1 Makefile (https://github.com/AsahiLinux/m1n1)
 # As we build the macho header by hand in the linker script, just using objcopy to
 # copy the binary over will discard the ELF wrapper and leave us with a whole macho file
 build/$(TARGET).macho: build/$(TARGET).elf
 	@echo "  MACHO    $@"
+	@$(OBJCOPY) -O binary --strip-debug $< $@
+
+build/$(TARGET).bin: build/$(TARGET)-raw.elf
+	@echo "  RAW    $@"
 	@$(OBJCOPY) -O binary --strip-debug $< $@
